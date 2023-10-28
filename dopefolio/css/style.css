@@ -276,24 +276,24 @@ textarea {
       .about__content-details-para:last-child {
         margin-bottom: 4rem; }
 
-.projects__row {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  grid-gap: 5rem;
-  margin-bottom: 11rem; }
-  animation: fadeIn 1s ease-in-out;
-  animation-fill-mode: both;
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+        .projects__row {
+          display: grid;
+          grid-template-columns: 1.5fr 1fr;
+          grid-gap: 5rem;
+          margin-bottom: 11rem;
+          animation: fadeIn 1s ease-in-out both;
+        }
 
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
   @media only screen and (max-width: 56.25em) {
     .projects__row {
       grid-template-columns: 1fr;
