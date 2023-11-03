@@ -1,21 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Case Study of Project 2</title>
-    <meta name="description" content="Case study page of Project" />
-
-    <link rel="stylesheet" href="css/style.css" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&display=swap"
-      rel="stylesheet"
-    />
-  </head>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+  <title>Colorsplosion</title>
   <style>
     body {
       background: black;
@@ -304,6 +291,8 @@ function respawnBall() {
 }
 
 function drawBricks() {
+    const infinitySymbol = "∞"; // Infinity symbol
+
     for (let c = 0; c < brickColumnCount; c++) {
         for (let r = 0; r < brickRowCount; r++) {
             if (bricks[c][r].status === 1) {
@@ -324,6 +313,19 @@ function drawBricks() {
                 context.fill();
                 context.stroke();
                 context.closePath();
+
+                // Calculate the position to place the infinity symbol in the middle of the brick
+                const symbolX = brickX + brickWidth / 2;
+                const symbolY = brickY + brickHeight / 2;
+
+                // Set the font and other properties for the symbol
+                context.font = '24px Arial'; // You can adjust the font size as needed
+                context.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+
+                // Draw the infinity symbol in the middle of the brick
+                context.fillText(infinitySymbol, symbolX, symbolY);
             }
         }
     }
@@ -547,30 +549,45 @@ function drawParticles() {
 
 function drawScore() {
     const scoreText = "SCORE " + score.toLocaleString().padStart(6, "0");
-    context.shadowColor = "transparent";
-    const textWidth = context.measureText(scoreText).width;
-    const boxWidth = textWidth + 20;
-    const boxHeight = 32;
-    const boxX = 0;
-    const boxY = 0;
+
+    // Set shadow settings
+    context.shadowColor = "#00FF00";
+    context.shadowBlur = 8;
     context.fillStyle = "#000000";
+
+    const textWidth = context.measureText(scoreText).width;
+    const textHeight = 28;  // Adjust the height as needed
+
+    // Calculate background box dimensions, making it slightly wider
+    const boxWidth = textWidth + 50;  // Increase the value to make the box wider
+    const boxHeight = textHeight + 8;
+
+    const boxX = 10;  // Adjust the position as needed
+    const boxY = 10;  // Adjust the position as needed
+
+    // Draw the background box
     context.fillRect(boxX, boxY, boxWidth, boxHeight);
     context.strokeStyle = "#00FF00";
     context.lineWidth = 2;
     context.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+    // Set text properties
     context.font = "bold 28px 'Press Start 2P', sans-serif";
     context.fillStyle = "#00FF00";
     context.textAlign = "left";
     context.textBaseline = "top";
+
+    // Calculate text position
     const scoreTextX = boxX + 10;
     const scoreTextY = boxY + 4;
-    context.shadowColor = "#00FF00";
-    context.shadowBlur = 8;
+
+    // Draw the score text
     context.fillText(scoreText, scoreTextX, scoreTextY);
+
+    // Reset shadow settings
     context.shadowColor = "transparent";
     context.shadowBlur = 0;
 }
-
     function drawLives() {
       context.font = "bold 16px 'Digital', sans-serif";
       context.fillStyle = "#FFFFFF";
@@ -868,3 +885,4 @@ document.getElementById("startButton").addEventListener("click", startGame, fals
 let particles = [];
 createBricks();
 </script>
+
