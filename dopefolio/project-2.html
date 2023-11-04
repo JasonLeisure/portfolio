@@ -1,888 +1,270 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
-  <title>Colorsplosion</title>
-  <style>
-    body {
-      background: black;
-      margin: 0;
-      padding: 0;
-    }
-    canvas {
-      border: 1px solid #000;
-      background: black;
-      display: block;
-      margin: 0 auto;
-    }
-    .logo {
-      text-align: center;
-      margin-top: 20px;
-      font-family: 'Bangers', cursive;
-    }
-    .logo span {
-      font-size: 60px;
-      font-weight: bold;
-      margin: 0 5px;
-      letter-spacing: 3px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    }
-    .start-button-container {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .start-button {
-      padding: 10px 20px;
-      background-color: #0095dd;
-      color: white;
-      font-size: 20px;
-      font-weight: bold;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .colorsplosion-letter {
-    font-size: 60px;
-    font-weight: bold;
-    margin: 0 5px;
-    letter-spacing: 3px;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-    animation: breathing 2s ease-in-out infinite;
-    opacity: 0.5;
-  }
-
-@keyframes breathing {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.2); opacity: 1; }
-}
-  </style>
+    <meta charset="UTF-8">
+    <title>Ball Drop Physics 2</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
-  <audio id="backgroundMusic" src="power.mp3" loop></audio>
-  <canvas id="gameCanvas" width="900" height="360"></canvas>
-  <div class="logo">
-  <span style="color: #FF0000" class="colorsplosion-letter">C</span>
-  <span style="color: #FF7F00" class="colorsplosion-letter">o</span>
-  <span style="color: #FFFF00" class="colorsplosion-letter">l</span>
-  <span style="color: #00FF00" class="colorsplosion-letter">o</span>
-  <span style="color: #0000FF" class="colorsplosion-letter">r</span>
-  <span style="color: #FF1493" class="colorsplosion-letter">s</span>
-  <span style="color: #00FFFF" class="colorsplosion-letter">p</span>
-  <span style="color: #FFD700" class="colorsplosion-letter">l</span>
-  <span style="color: #FF00FF" class="colorsplosion-letter">o</span>
-  <span style="color: #ADFF2F" class="colorsplosion-letter">s</span>
-  <span style="color: #1E90FF" class="colorsplosion-letter">i</span>
-  <span style="color: #7FFFD4" class="colorsplosion-letter">o</span>
-  <span style="color: #FFE4C4" class="colorsplosion-letter">n</span>
-</div>
-  <div class="start-button-container">
-    <button class="start-button" id="startButton">Start Game</button>
-  </div>
-  <script>
-    backgroundMusic.volume = 0.2;
-    const canvas = document.getElementById("gameCanvas");
-    const context = canvas.getContext("2d");
-    const paddleWidth = 100;
-    const paddleHeight = 10;
-    const paddleSpeed = 8;
-    let ballAttached = true;
-    const ballRadius = 20;
-    const ballSpeed = 3.6;
-    const brickRowCount = 5;
-    const brickColumnCount = 10;
-    const brickWidth = 80;
-    const brickHeight = 20;
-    const brickPadding = 10;
-    const brickOffsetTop = (canvas.height - brickRowCount * (brickHeight + brickPadding)) / 2;
-    const brickOffsetLeft = (canvas.width - brickColumnCount * (brickWidth + brickPadding) + brickPadding) / 2;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script>
 
-    let score = 0;
-    let lives = 6;
-    let level = 1;
-    let points = 50 + 10 * (level - 1);
-    let paddleX = (canvas.width - paddleWidth) / 2;
-    let ballX = canvas.width / 2;
-    let ballY = canvas.height - 30;
-    let ballSpeedX = ballSpeed;
-    let ballSpeedY = -ballSpeed;
-
-    let bricks = [];
-
-    let rightPressed = false;
-    let leftPressed = false;
-    let gameStarted = false;
-    let gamePaused = false;
-
-    let ballReleased = false;
-
-    function createBricks() {
-      for (let c = 0; c < brickColumnCount; c++) {
-        bricks[c] = [];
-        for (let r = 0; r < brickRowCount; r++) {
-          bricks[c][r] = {
-            x: 0,
-            y: 0,
-            status: 1,
-            color: getRandomColor(),
-            hitCount: 0,
-          };
-        }
-      }
-    }
-
-    function getRandomColor() {
-      const letters = "0123456789ABCDEF";
-      let color = "#";
-      for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-      }
-      return color;
-    }
-    function drawBall() {
-    const ballRadius = 12;
-
-    if (ballAttached) {
-        ballX = paddleX + paddleWidth / 2;
-        ballY = canvas.height - paddleHeight - ballRadius;
-    }
+        const scene = new THREE.Scene();
 
 
-    const pulsateMagnitude = Math.abs(Math.sin(Date.now() * 0.01)) * 0.8 + 0.2;
-    const centerSunRadius = ballRadius * (0.5 + pulsateMagnitude * 0.5);
-    const flameGradient = context.createRadialGradient(
-        ballX, ballY, centerSunRadius,
-        ballX, ballY, ballRadius
-    );
-    flameGradient.addColorStop(0, "rgba(255, 0, 0, 0.9)");
-    flameGradient.addColorStop(0.5, "rgba(255, 165, 0, 0.6)");
-    flameGradient.addColorStop(1, "transparent");
-
-    context.beginPath();
-    context.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-    context.fillStyle = flameGradient;
-    context.fill();
-    context.closePath();
-    const sunGradient = context.createRadialGradient(
-        ballX, ballY, centerSunRadius * 0.5,
-        ballX, ballY, centerSunRadius
-    );
-    sunGradient.addColorStop(0, "rgba(255, 223, 0, 0.9)");
-    sunGradient.addColorStop(0.5, "rgba(255, 165, 0, 0.6)");
-    sunGradient.addColorStop(1, "transparent");
-
-    context.beginPath();
-    context.arc(ballX, ballY, centerSunRadius, 0, Math.PI * 2);
-    context.fillStyle = sunGradient;
-    context.fill();
-    context.closePath();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 5, 15);
 
 
-    const ballGradient = context.createRadialGradient(
-        ballX, ballY, ballRadius * 0.5,
-        ballX, ballY, ballRadius
-    );
-    ballGradient.addColorStop(0, "rgba(255, 255, 255, 0.8)");
-    ballGradient.addColorStop(1, "rgba(255, 0, 0, 0.8)");
-
-    context.beginPath();
-    context.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
-    context.fillStyle = ballGradient;
-    context.fill();
-    context.closePath();
-}
-function respawnBall() {
-  ballAttached = true;
-  ballX = paddleX + paddleWidth / 2;
-  ballY = canvas.height - paddleHeight - ballRadius;
-  ballSpeedX = ballSpeed;
-  ballSpeedY = -ballSpeed;
-}
-   function drawPaddle() {
-  context.beginPath();
-  context.rect(
-    paddleX,
-    canvas.height - paddleHeight,
-    paddleWidth,
-    paddleHeight
-  );
-  context.fillStyle = "#0095DD";
-  context.fill();
-  context.closePath();
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
 
 
-  const gradient = context.createLinearGradient(
-    paddleX, canvas.height - paddleHeight,
-    paddleX, canvas.height
-  );
-  gradient.addColorStop(0, "#004277");
-  gradient.addColorStop(1, "#0095DD");
+        const world = new CANNON.World();
+        world.gravity.set(0, -20, 0);
 
-  const cornerRadius = paddleHeight / 2;
-
-  context.beginPath();
-  context.moveTo(paddleX + cornerRadius, canvas.height - paddleHeight);
-  context.lineTo(paddleX + paddleWidth - cornerRadius, canvas.height - paddleHeight);
-  context.quadraticCurveTo(paddleX + paddleWidth, canvas.height - paddleHeight, paddleX + paddleWidth, canvas.height - paddleHeight + cornerRadius);
-  context.lineTo(paddleX + paddleWidth, canvas.height);
-  context.lineTo(paddleX, canvas.height);
-  context.lineTo(paddleX, canvas.height - paddleHeight + cornerRadius);
-  context.quadraticCurveTo(paddleX, canvas.height - paddleHeight, paddleX + cornerRadius, canvas.height - paddleHeight);
-
-  context.fillStyle = gradient;
-  context.fill();
-  context.closePath();
+// Create a more accurate time step
+const fixedTimeStep = 1 / 160; // 60 FPS
+        const maxSubSteps = 60; // Maximum number of simulation steps per frame
 
 
-  context.beginPath();
-  context.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+        const groundShape = new CANNON.Plane();
+        const groundBody = new CANNON.Body({ mass: 0, shape: groundShape });
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        world.addBody(groundBody);
 
-  const shadowGradient = context.createLinearGradient(
-    paddleX, canvas.height - paddleHeight,
-    paddleX, canvas.height
-  );
-  shadowGradient.addColorStop(0, "rgba(0, 0, 0, 0.3)");
-  shadowGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+        const groundGeometry = new THREE.PlaneGeometry(30, 30, 32, 32);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.8, metalness: 0.2 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
 
-  context.fillStyle = shadowGradient;
-
-
-  context.shadowOffsetX = 5;
-  context.shadowOffsetY = 5;
-  context.shadowBlur = 5;
-  context.shadowColor = "rgba(0, 0, 0, 0.3)";
-
-  context.fill();
-  context.closePath();
-
-  context.shadowOffsetX = 0;
-  context.shadowOffsetY = 0;
-  context.shadowBlur = 0;
-
-
-  context.beginPath();
-  context.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
-
-  const embossGradient = context.createLinearGradient(
-    paddleX, canvas.height - paddleHeight,
-    paddleX, canvas.height
-  );
-  embossGradient.addColorStop(0, "#0095DD");
-  embossGradient.addColorStop(1, "#005AAA");
-
-  context.fillStyle = embossGradient;
-
-  context.shadowOffsetX = 0;
-  context.shadowOffsetY = -2;
-  context.shadowBlur = 2;
-  context.shadowColor = "rgba(255, 255, 255, 0.3)";
-
-  context.fill();
-  context.closePath();
-
-  context.shadowOffsetX = 0;
-  context.shadowOffsetY = 0;
-  context.shadowBlur = 0;
-
-  context.fillStyle = "#0095DD";
-}
-
-function drawBricks() {
-    const infinitySymbol = "∞"; // Infinity symbol
-
-    for (let c = 0; c < brickColumnCount; c++) {
-        for (let r = 0; r < brickRowCount; r++) {
-            if (bricks[c][r].status === 1) {
-                const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
-                const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
-                bricks[c][r].x = brickX;
-                bricks[c][r].y = brickY;
-
-                const gradient = context.createLinearGradient(brickX, brickY, brickX + brickWidth, brickY + brickHeight);
-                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
-                gradient.addColorStop(1, bricks[c][r].color);
-
-                context.beginPath();
-                context.rect(brickX, brickY, brickWidth, brickHeight);
-                context.fillStyle = gradient;
-                context.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-                context.lineWidth = 1;
-                context.fill();
-                context.stroke();
-                context.closePath();
-
-                // Calculate the position to place the infinity symbol in the middle of the brick
-                const symbolX = brickX + brickWidth / 2;
-                const symbolY = brickY + brickHeight / 2;
-
-                // Set the font and other properties for the symbol
-                context.font = '24px Arial'; // You can adjust the font size as needed
-                context.fillStyle = 'rgba(0, 0, 0, 0.8)';
-                context.textAlign = 'center';
-                context.textBaseline = 'middle';
-
-                // Draw the infinity symbol in the middle of the brick
-                context.fillText(infinitySymbol, symbolX, symbolY);
-            }
-        }
-    }
-}
-   function collisionDetection() {
-  let bricksHit = false;
-
-  for (let c = 0; c < brickColumnCount; c++) {
-    for (let r = 0; r < brickRowCount; r++) {
-      const brick = bricks[c][r];
-      if (brick.status === 1) {
-        if (
-          ballX > brick.x &&
-          ballX < brick.x + brickWidth &&
-          ballY > brick.y &&
-          ballY < brick.y + brickHeight
-        ) {
-          ballSpeedY = -ballSpeedY;
-          brick.hitCount++;
-          if (brick.hitCount === 2) {
-            bricksHit = true;
-            brick.status = 0;
-            explodeBrick(brick);
-            score++;
-            if (score >= points) {
-              nextLevel();
-            }
-          }
-        }
-      }
-    }
-  }
-
-  if (bricksHit) {
-    for (let c = 0; c < brickColumnCount; c++) {
-      for (let r = 0; r < brickRowCount; r++) {
-        const brick = bricks[c][r];
-        if (brick.status === 1) {
-          brick.color = getRandomColor();
-        }
-      }
-    }
-  }
-
-
-  let allBricksCleared = true;
-  for (let c = 0; c < brickColumnCount; c++) {
-    for (let r = 0; r < brickRowCount; r++) {
-      if (bricks[c][r].status === 1) {
-        allBricksCleared = false;
-        break;
-      }
-    }
-  }
-
-  if (allBricksCleared) {
-    nextLevel();
-  }
-}
-    function explodeBrick(brick) {
-      const explosionColors = [
-       "#FF0000",   // Red
-        "#FF7F00",   // Orange
-        "#FFFF00",   // Yellow
-        "#00FF00",   // Green
-        "#0000FF",   // Blue
-        "#FF1493",   // DeepPink
-        "#00FFFF",   // Cyan
-        "#FFD700",   // Gold
-        "#FF00FF",   // Fuchsia
-        "#ADFF2F",   // GreenYellow
-        "#1E90FF",   // DodgerBlue
-        "#7FFFD4",   // Aquamarine
-        "#FFE4C4",   // Bisque
-        "#00FA9A",   // MediumSpringGreen
-        "#AFEEEE",   // PaleTurquoise
-        "#FF6347",   // Tomato
-        "#FFC0CB",   // Pink
-        "#32CD32",   // LimeGreen
-        "#7B68EE",   // MediumSlateBlue
-        "#48D1CC",   // MediumTurquoise
-        "#8A2BE2",   // BlueViolet
-        "#66CDAA",   // MediumAquamarine
-        "#FF69B4",   // HotPink
-        "#9932CC",   // DarkOrchid
-        "#FF00FF",   // Magenta
-        "#00BFFF",   // DeepSkyBlue
-        "#7FFF00",   // Chartreuse
-        "#F08080",   // LightCoral
-        "#90EE90",   // LightGreen
-        "#00FFFF",   // Aqua
-        "#FFB6C1",   // LightPink
-        "#FFA07A",   // LightSalmon
-        "#7CFC00",   // LawnGreen
-        "#FFDAB9",   // PeachPuff
-        "#9370DB",   // MediumPurple
-        "#20B2AA",   // LightSeaGreen
-        "#00CED1",   // DarkTurquoise
-        "#00FF7F",   // SpringGreen
-        "#FF4500",   // OrangeRed
-        "#FF8C00",   // DarkOrange
-        "#FA8072",   // Salmon
-        "#FFB400",   // Goldenrod
-        "#FF69B4",   // HotPink
-        "#BA55D3",   // MediumOrchid
-        "#3CB371",   // MediumSeaGreen
-        "#4169E1",   // RoyalBlue
-        "#DAA520",   // Goldenrod
-        "#FF6347",   // Tomato
+        const sphereColors = [
+        "#FF0000",   // Red
+"#FF7F00",   // Orange
+"#FFFF00",   // Yellow
+"#00FF00",   // Green
+"#0000FF",   // Blue
+"#FF1493",   // DeepPink
+"#00FFFF",   // Cyan
+"#FFD700",   // Gold
+"#ADFF2F",   // GreenYellow
+"#1E90FF",   // DodgerBlue
+"#F08080",   // LightCoral
+"#90EE90",   // LightGreen
+"#FFB6C1",   // LightPink
+"#FFA07A",   // LightSalmon
+"#7CFC00",   // LawnGreen
+"#FFDAB9",   // PeachPuff
+"#9370DB",   // MediumPurple
+"#20B2AA",   // LightSeaGreen
+"#00CED1",   // DarkTurquoise
+"#FF4500",   // OrangeRed
+"#FF8C00",   // DarkOrange
+"#FA8072",   // Salmon
+"#DAA520",   // Goldenrod
+"#4169E1",   // RoyalBlue
+"#3CB371",   // MediumSeaGreen
+"#7B68EE",   // MediumSlateBlue
+"#FFC0CB",   // Pink
+"#7FFF00",   // Chartreuse
+"#BA55D3",   // MediumOrchid
+"#66CDAA",   // MediumAquamarine
+"#9932CC",   // DarkOrchid
+"#AFEEEE",   // PaleTurquoise
+"#8B4513",   // SaddleBrown
+"#2E8B57",   // SeaGreen
+"#8B008B",   // DarkMagenta
+"#228B22",   // ForestGreen
+"#800000",   // Maroon
+"#008B8B",   // DarkCyan
+"#9400D3",   // DarkViolet
+"#000080",   // Navy
+"#556B2F",   // DarkOliveGreen
+"#FFA500",   // Orange
+"#A52A2A",   // Brown
+"#4682B4",   // SteelBlue
+"#DC143C"    // Crimson
 ];
 
-     const brickX = brick.x;
-      const brickY = brick.y;
+        // Realistic sphere properties
+        const minBalls = 100; // Minimum number of balls
+        const maxBalls = 700; // Maximum number of balls
+        const numSpheres = Math.floor(Math.random() * (maxBalls - minBalls + 1)) + minBalls;
+        const spheres = [];
 
-      for (let i = 0; i < 50; i++) {
-      const explosionColor = explosionColors[Math.floor(Math.random() * explosionColors.length)];
-      const explosionSize = Math.random() * 4;
+        const sphereBodies = []; // Array to store Cannon.js sphere bodies
 
-      const particleX = brickX + brickWidth / 2;
-      const particleY = brickY + brickHeight / 2;
-      let particleSpeedX = (Math.random() - 0.5) * 4;
-      const particleSpeedY = (Math.random() - 0.5) * 4;
+        for (let i = 0; i < numSpheres; i++) {
+            const radius = Math.random() * 0.2 + 0.1; // Vary sphere sizes
+            const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
+            const randomColor = sphereColors[Math.floor(Math.random() * sphereColors.length)];
+            const sphereMaterial = new THREE.MeshStandardMaterial({ color: randomColor, roughness: 0.5, metalness: 0.5 });
+            const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 
-      particles.push({
-      x: particleX,
-      y: particleY,
-      speedX: particleSpeedX,
-      speedY: particleSpeedY,
-      size: explosionSize,
-      color: explosionColor,
-      lifespan: 700, // Lifespan of particles (in frames)
+            const density = 7850; // Density of steel in kg/m³
+            const volume = (4 / 3) * Math.PI * Math.pow(radius, 3);
+            const mass = density * volume;
+
+            const sphereBody = new CANNON.Body({ mass, shape: new CANNON.Sphere(radius) });
+            const x = Math.random() * 10 - 5;
+            const y = Math.random() * 30 + 10;
+            const z = Math.random() * 10 - 5;
+
+            sphereBody.position.set(x, y, z);
+
+            // Realistic material properties
+            sphereBody.material = new CANNON.Material();
+            sphereBody.material.friction = 0.3; // Adjust friction
+            sphereBody.material.restitution = 0.7; // Adjust restitution
+
+            spheres.push({ mesh: sphere, body: sphereBody });
+            sphere.castShadow = true;
+            scene.add(sphere);
+
+            sphereBodies.push(sphereBody);
+            world.addBody(sphereBody);
+        }
+
+        // Add directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.radius = 1;
+        directionalLight.shadow.camera.left = -20;
+        directionalLight.shadow.camera.right = 20;
+        directionalLight.shadow.camera.top = 20;
+        directionalLight.shadow.camera.bottom = -20;
+        scene.add(directionalLight);
+
+
+        // Function to handle sphere-to-sphere collisions
+        const handleSphereCollisions = () => {
+            const numSpheres = sphereBodies.length;
+            for (let i = 0; i < numSpheres; i++) {
+                for (let j = i + 1; j < numSpheres; j++) {
+                    const bodyA = sphereBodies[i];
+                    const bodyB = sphereBodies[j];
+
+                    const contactPointA = new CANNON.Vec3();
+                    const contactPointB = new CANNON.Vec3();
+                    const distance = bodyA.position.distanceTo(bodyB.position);
+
+                    if (distance < bodyA.shapes[0].radius + bodyB.shapes[0].radius) {
+                        bodyA.position.vsub(bodyB.position, contactPointA);
+                        bodyB.position.vsub(bodyA.position, contactPointB);
+
+                        const normal = contactPointA.unit(contactPointA); // Get collision normal
+
+                        // Apply an impulse to resolve the collision
+                        const impulse = new CANNON.Vec3(0, 0, 0.5); // Adjust the impulse for desired effect
+                        bodyA.applyImpulse(impulse, contactPointA);
+                        bodyB.applyImpulse(impulse.negate(), contactPointB);
+                    }
+                }
+            }
+        };
+
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10, 20, 10);
+light.castShadow = true;
+light.shadow.mapSize.width = 4096;
+light.shadow.mapSize.height = 4096;
+light.shadow.radius = 2;
+light.shadow.camera.left = -20;
+light.shadow.camera.right = 20;
+light.shadow.camera.top = 20;
+light.shadow.camera.bottom = -20;
+
+scene.add(light);
+
+
+const dynamicLight = new THREE.PointLight(0xffffff, 1);
+dynamicLight.castShadow = true;
+scene.add(dynamicLight);
+
+
+        const moveDirection = new THREE.Vector3();
+        const rotationSpeed = 0.02;
+        const movementSpeed = 0.2;
+
+
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false,
+        };
+
+        document.addEventListener('keydown', (event) => {
+            keys[event.key] = true;
+        });
+
+        document.addEventListener('keyup', (event) => {
+            keys[event.key] = false;
+            moveDirection.set(0, 0, 0);
+        });
+
+
+        const update = () => {
+            const rotationDirection = new THREE.Vector3();
+            moveDirection.set(0, 0, 0);
+
+            if (keys.ArrowUp) {
+                moveDirection.z = 1;
+            }
+            if (keys.ArrowDown) {
+                moveDirection.z = -1;
+            }
+            if (keys.ArrowLeft) {
+                rotationDirection.y = 1;
+            }
+            if (keys.ArrowRight) {
+                rotationDirection.y = -1;
+            }
+
+
+            camera.rotateOnWorldAxis(rotationDirection, rotationSpeed);
+
+
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            const actualMoveDirection = forward.multiplyScalar(moveDirection.z);
+            camera.position.add(actualMoveDirection.multiplyScalar(movementSpeed));
+        };
+
+
+        const animate = () => {
+    requestAnimationFrame(animate);
+    world.step(1 / 60);
+    update();
+
+    spheres.forEach(({ mesh, body }) => {
+        mesh.position.copy(body.position);
+        mesh.quaternion.copy(body.quaternion);
     });
-  }
-}
-function drawParticles() {
-  const gameBoardArea = {
-    x: 0,
-    y: 0,
-    width: canvas.width,
-    height: canvas.height,
-  };
 
-  for (let i = 0; i < particles.length; i++) {
-    const particle = particles[i];
 
-    particle.speedX *= 1.005;
-    particle.speedY *= 1.005;
-
-    particle.x += particle.speedX;
-    particle.y += particle.speedY;
-
-    particle.rotation += particle.speedX * 0.01;
-
-    for (let j = i + 1; j < particles.length; j++) {
-      const otherParticle = particles[j];
-      const dx = otherParticle.x - particle.x;
-      const dy = otherParticle.y - particle.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance < particle.size + otherParticle.size) {
-        const angle = Math.atan2(dy, dx);
-        const sinAngle = Math.sin(angle);
-        const cosAngle = Math.cos(angle);
-
-        const velocityX1 = particle.speedX * cosAngle - particle.speedY * sinAngle;
-        const velocityY1 = particle.speedX * sinAngle + particle.speedY * cosAngle;
-        const velocityX2 = otherParticle.speedX * cosAngle - otherParticle.speedY * sinAngle;
-        const velocityY2 = otherParticle.speedX * sinAngle + otherParticle.speedY * cosAngle;
-
-        particle.speedX = velocityX2 * cosAngle + velocityY1 * sinAngle;
-        particle.speedY = velocityY1 * cosAngle - velocityX2 * sinAngle;
-        otherParticle.speedX = velocityX1 * cosAngle + velocityY2 * sinAngle;
-        otherParticle.speedY = velocityY2 * cosAngle - velocityX1 * sinAngle;
-      }
+    if (spheres.length > 0) {
+        const firstSphere = spheres[0].mesh;
+        dynamicLight.position.copy(firstSphere.position);
+        dynamicLight.position.y = 1;
     }
 
-    if (
-      particle.x + particle.size < gameBoardArea.x ||
-      particle.x - particle.size > gameBoardArea.x + gameBoardArea.width ||
-      particle.y + particle.size < gameBoardArea.y ||
-      particle.y - particle.size > gameBoardArea.y + gameBoardArea.height
-    ) {
-      particles.splice(i, 1);
-      i--;
-    }
+    renderer.render(scene, camera);
+};
 
-    context.save();
-    context.translate(particle.x, particle.y);
-    context.rotate(particle.rotation);
-    const hue = (i / particles.length) * 360;
-    particle.color = `hsl(${hue}, 100%, 50%)`;
-    const gradient = context.createRadialGradient(0, 0, 0, 0, 0, particle.size);
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-    gradient.addColorStop(0.5, particle.color);
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
-    context.fillStyle = gradient;
-    context.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-    context.lineWidth = 2;
-    context.beginPath();
-    context.arc(0, 0, particle.size, 0, Math.PI * 2);
-    context.fill();
-    context.stroke();
-    context.closePath();
-
-    const shadowColor = `rgba(${particle.color.r}, ${particle.color.g}, ${particle.color.b}, 0.3)`;
-    context.shadowColor = shadowColor;
-    context.shadowBlur = particle.size * 0.7;
-
-    const opacity = particle.lifespan / 100;
-    context.globalAlpha = opacity;
-
-    context.restore();
-
-    particle.lifespan--;
-  }
-
-  drawBricks();
-  drawPaddle();
-  drawBall();
-}
-
-function drawScore() {
-    const scoreText = "SCORE " + score.toLocaleString().padStart(6, "0");
-
-    // Set shadow settings
-    context.shadowColor = "#00FF00";
-    context.shadowBlur = 8;
-    context.fillStyle = "#000000";
-
-    const textWidth = context.measureText(scoreText).width;
-    const textHeight = 28;  // Adjust the height as needed
-
-    // Calculate background box dimensions, making it slightly wider
-    const boxWidth = textWidth + 50;  // Increase the value to make the box wider
-    const boxHeight = textHeight + 8;
-
-    const boxX = 10;  // Adjust the position as needed
-    const boxY = 10;  // Adjust the position as needed
-
-    // Draw the background box
-    context.fillRect(boxX, boxY, boxWidth, boxHeight);
-    context.strokeStyle = "#00FF00";
-    context.lineWidth = 2;
-    context.strokeRect(boxX, boxY, boxWidth, boxHeight);
-
-    // Set text properties
-    context.font = "bold 28px 'Press Start 2P', sans-serif";
-    context.fillStyle = "#00FF00";
-    context.textAlign = "left";
-    context.textBaseline = "top";
-
-    // Calculate text position
-    const scoreTextX = boxX + 10;
-    const scoreTextY = boxY + 4;
-
-    // Draw the score text
-    context.fillText(scoreText, scoreTextX, scoreTextY);
-
-    // Reset shadow settings
-    context.shadowColor = "transparent";
-    context.shadowBlur = 0;
-}
-    function drawLives() {
-      context.font = "bold 16px 'Digital', sans-serif";
-      context.fillStyle = "#FFFFFF";
-      context.shadowColor = "rgba(0, 0, 0, 0.5)";
-      context.shadowBlur = 4;
-      context.fillText(
-        "Lives: " + lives.toLocaleString(),
-        canvas.width - 65,
-        20
-      );
-      context.shadowColor = "transparent";
-    }
-
-    function resetBricks() {
-  for (let c = 0; c < brickColumnCount; c++) {
-    for (let r = 0; r < brickRowCount; r++) {
-      if (bricks[c][r].status === 1) {
-        bricks[c][r].hitCount = 0;
-        bricks[c][r].color = getRandomColor();
-      }
-    }
-  }
-}
-function drawLevel() {
-    const levelText = "LEVEL " + level.toLocaleString().padStart(2, "0");
-    context.shadowColor = "transparent";
-    context.font = "bold 28px 'Press Start 2P', sans-serif";
-    context.fillStyle = "#00FF00";
-    context.textAlign = "center";
-    context.textBaseline = "top";
-    const levelTextWidth = context.measureText(levelText).width;
-    const levelTextX = canvas.width / 2;
-    const levelTextY = 0;
-    context.shadowColor = "#00FF00";
-    context.shadowBlur = 8;
-    context.fillText(levelText, levelTextX, levelTextY);
-    context.shadowColor = "transparent";
-    context.shadowBlur = 0;
-}
-
-  function drawHeart(x, y, size) {
-  context.fillStyle = "red";
-  context.strokeStyle = "red";
-  context.beginPath();
-  context.moveTo(x, y + size / 4);
-  context.quadraticCurveTo(x, y, x + size / 4, y);
-  context.quadraticCurveTo(x + size / 2, y, x + size / 2, y + size / 4);
-  context.quadraticCurveTo(x + size / 2, y, x + size * 3 / 4, y);
-  context.quadraticCurveTo(x + size, y, x + size, y + size / 4);
-  context.quadraticCurveTo(x + size, y + size / 2, x + size / 2, y + size * 3 / 4);
-  context.quadraticCurveTo(x, y + size / 2, x, y + size / 4);
-  context.closePath();
-  context.fill();
-  context.stroke();
-}
-
-function draw3DHeart(x, y, size) {
-  const gradient = context.createRadialGradient(
-    x + size / 2, y + size / 4, size / 8,
-    x + size / 2, y + size / 2, size
-  );
-
-  gradient.addColorStop(0, "rgba(255, 0, 0, 0.9)");
-  gradient.addColorStop(1, "rgba(200, 0, 0, 0.6)");
-
-  context.shadowColor = "rgba(0, 0, 0, 0.3)";
-  context.shadowBlur = 5;
-  context.shadowOffsetX = 2;
-  context.shadowOffsetY = 2;
-
-  context.fillStyle = gradient;
-  context.strokeStyle = "red";
-  context.beginPath();
-  context.moveTo(x, y + size / 4);
-  context.quadraticCurveTo(x, y, x + size / 4, y);
-  context.quadraticCurveTo(x + size / 2, y, x + size / 2, y + size / 4);
-  context.quadraticCurveTo(x + size / 2, y, x + size * 3 / 4, y);
-  context.quadraticCurveTo(x + size, y, x + size, y + size / 4);
-  context.quadraticCurveTo(x + size, y + size / 2, x + size / 2, y + size * 3 / 4);
-  context.quadraticCurveTo(x, y + size / 2, x, y + size / 4);
-  context.closePath();
-  context.fill();
-  context.stroke();
-
-  context.shadowColor = "rgba(255, 0, 0, 0.5)";
-  context.shadowBlur = 10;
-  context.shadowOffsetX = 0;
-  context.shadowOffsetY = 0;
-  context.shadowBlur = 0;
-  context.shadowColor = "rgba(0, 0, 0, 0)";
-
-  context.strokeStyle = "rgba(255, 255, 255, 0.7)";
-  context.lineWidth = 2;
-  context.beginPath();
-  context.moveTo(x + size * 0.1, y + size * 0.5);
-  context.quadraticCurveTo(x + size * 0.5, y + size * 0.1, x + size * 0.9, y + size * 0.5);
-  context.stroke();
-  context.closePath();
-  context.strokeStyle = "rgba(0, 0, 0, 0.2)";
-  context.lineWidth = 1;
-  context.beginPath();
-  context.moveTo(x + size * 0.15, y + size * 0.6);
-  context.quadraticCurveTo(x + size * 0.5, y + size * 0.75, x + size * 0.85, y + size * 0.6);
-  context.stroke();
-  context.closePath();
-
-  context.beginPath();
-  context.moveTo(x + size * 0.2, y + size * 0.7);
-  context.quadraticCurveTo(x + size * 0.5, y + size * 0.9, x + size * 0.8, y + size * 0.7);
-  context.stroke();
-  context.closePath();
-}
-
-
-function drawHearts() {
-  const heartSize = 30;
-  hearts = [];
-
-  const heartbeatScale = 1 + 0.1 * Math.sin(Date.now() * 0.005);
-
-  for (let i = 0; i < lives; i++) {
-    let heartX = canvas.width - 35 * (i + 1);
-    let heartY = 5;
-
-    const animatedHeartSize = heartSize * heartbeatScale;
-
-    draw3DHeart(heartX, heartY, animatedHeartSize);
-    hearts.push({ x: heartX, y: heartY });
-  }
-}
-      function draw() {
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      drawBricks();
-      drawBall();
-      drawPaddle();
-      drawScore();
-      drawHearts();
-      drawLevel();
-
-      collisionDetection();
-      drawParticles();
-
-
-      if (
-    ballX + ballSpeedX > canvas.width - ballRadius ||
-    ballX + ballSpeedX < ballRadius
-    ) {
-    ballSpeedX = -ballSpeedX;
-    }
-  if (ballY + ballSpeedY < ballRadius) {
-    ballSpeedY = -ballSpeedY;
-  } else if (ballY + ballSpeedY > canvas.height - ballRadius) {
-    if (ballX > paddleX && ballX < paddleX + paddleWidth) {
-      ballSpeedY = -ballSpeedY;
-    } else {
-      lives--;
-      if (!lives) {
-        alert("Game Over");
-        document.location.reload();
-      } else {
-        respawnBall();
-        ballX = canvas.width / 2;
-        ballY = canvas.height - 30;
-        ballSpeedX = ballSpeed;
-        ballSpeedY = -ballSpeed;
-        paddleX = (canvas.width - paddleWidth) / 2;
-      }
-    }
-  }
-
-  if (rightPressed && paddleX < canvas.width - paddleWidth) {
-    paddleX += paddleSpeed;
-  } else if (leftPressed && paddleX > 0) {
-    paddleX -= paddleSpeed;
-  }
-
-  ballX += ballSpeedX;
-  ballY += ballSpeedY;
-
-  requestAnimationFrame(draw);
-}
-
-function animate() {
-  if (!gamePaused) {
-    ballX += ballSpeedX;
-    ballY += ballSpeedY;
-
-    draw();
-  }
-  requestAnimationFrame(animate);
-}
-
-function resetHearts() {
-      hearts = [];
-    }
-
-    function keyDownHandler(event) {
-  if (event.keyCode === 39) {
-    rightPressed = true;
-  } else if (event.keyCode === 37) {
-    leftPressed = true;
-  } else if (event.keyCode === 13) {
-    if (!gameStarted) {
-      gameStarted = true;
-      gamePaused = false;
-      document.getElementById("backgroundMusic").play();
-      animate();
-    } else {
-      gamePaused = !gamePaused;
-      if (gamePaused) {
-        document.getElementById("backgroundMusic").pause();
-      } else {
-        document.getElementById("backgroundMusic").play();
-      }
-    }
-  } else if (event.keyCode === 32 && ballAttached) {
-    ballAttached = false;
-    ballY = canvas.height - paddleHeight - ballRadius;
-    ballSpeedY = -ballSpeed;
-  }
-}
-
-    function keyUpHandler(event) {
-      if (event.keyCode === 39) {
-        rightPressed = false;
-      } else if (event.keyCode === 37) {
-        leftPressed = false;
-      }
-    }
-
-    function mouseMoveHandler(event) {
-    const canvasRect = canvas.getBoundingClientRect();
-    const relativeX = event.clientX - canvasRect.left;
-    const minX = 0;
-    const maxX = canvas.width - paddleWidth;
-    paddleX = Math.min(Math.max(relativeX - paddleWidth / 2, minX), maxX);
-  }
-
-  function startGame() {
-  gameStarted = true;
-  document.getElementById("startButton").style.display = "none";
-  backgroundMusic.volume = 0.2;
-  document.getElementById("backgroundMusic").play();
-  resetBricks();
-  createBricks();
-  draw();
-  canvas.addEventListener("click", launchBall, false);
-}
-function launchBall() {
-  canvas.removeEventListener("click", launchBall, false);
-  animate();
-}
-
-    function nextLevel() {
-    level++;
-    points = 50 + 10 * (level - 1);
-    score = 0;
-    ballX = canvas.width / 2;
-    ballY = canvas.height - 30;
-    ballSpeedX = ballSpeed;
-    ballSpeedY = -ballSpeed;
-    paddleX = (canvas.width - paddleWidth) / 2;
-    resetBricks();
-    createBricks();
-}
-function toggleMusic() {
-  if (backgroundMusic.paused) {
-    backgroundMusic.play();
-    document.getElementById('music-button').innerHTML = 'Pause Music';
-  } else {
-    backgroundMusic.pause();
-    document.getElementById('music-button').innerHTML = 'Play Music';
-  }
-}
-
-document.addEventListener('keydown', function (event) {
-  if (event.code === 'Enter') {
-    toggleMusic();
-  }
-});
-
-// Set the volume to 40% on user interaction (click)
-document.addEventListener('click', function () {
-  backgroundMusic.volume = 0.2;
-});
-
-
-backgroundMusic.volume = 0.2;
-backgroundMusic.pause();
-document.addEventListener("keydown", keyDownHandler, false);
-document.addEventListener("keyup", keyUpHandler, false);
-document.addEventListener("mousemove", mouseMoveHandler, false);
-document.getElementById("startButton").addEventListener("click", startGame, false);
-
-let particles = [];
-createBricks();
-</script>
-
+animate();
+    </script>
+</body>
+</html>
