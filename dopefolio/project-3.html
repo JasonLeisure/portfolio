@@ -1,239 +1,506 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator Demo</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            border: 0;
-        }
-        body {
-            overflow: hidden;
-            background: linear-gradient(90deg, red, orange, yellow, green, blue, indigo, violet);
-            background-size: 100% 100%;
-            animation: shift 5s infinite;
-        }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            display: block;
+.calculator-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.calculator {
+    background: #333;
+    padding: 20px;
+    border-radius: 20px;
+    position: relative;
+    width: 380px;
+    height: 575px;
+    overflow: hidden;
+    box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.5);
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease;
+    transform: perspective(500px) rotateX(6deg);
+}
+
+.screen-off {
+    background: rgba(0, 0, 0, 0.5);
+    border: 3px solid #222;
+}
+
+.calculator:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, #333, #444);
+    opacity: 0.2;
+    z-index: -1;
+}
+
+.glass {
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.2));
+    border-radius: 20px;
+    padding: 20px;
+    height: 100%;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+
+
+.display {
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+    color: #fff;
+    text-align: right;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 36px;
+    height: 70px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+    overflow: auto;
+    backdrop-filter: blur(10px);
+
+
+    .display input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font-size: 36px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0 15px 0 0;
+    border: none;
+    text-align: center;
+}
+
+.display input:focus {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.glass:hover {
+    transform: scale(1.02);
+    transition: transform 0.3s ease-in-out;
+}
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+}
+
+.display {
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.3));
+    color: #fff;
+    text-align: right;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 36px;
+    height: 70px;
+    border: 2px solid transparent;
+    box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    border: 3px solid #333;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+        .display input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-size: 36px;
+            width: 100%;
+            height: 100%;
         }
 
-        @keyframes shift {
-            0% {
-                background-position: 0 0;
-            }
-            100% {
-                background-position: 100% 0;
-            }
-        }
+.power-button {
+    position: absolute;
+    top: 10px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.1));
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 3px solid #333;
+}
+
+.power-button.off {
+    background: radial-gradient(circle at 50% 50%, #ff0000 0%, #aa0000 80%, #880000 100%);
+    color: #fff;
+    border: 1px solid #ff0000;
+}
+
+
+.power-button.on {
+    background: radial-gradient(circle at 50% 50%, #00ff00 0%, #00aa00 80%, #008800 100%);
+    color: #fff;
+    border: 1px solid #00ff00;
+    animation: glow 1.5s infinite alternate;
+    box-shadow: 0 3px 6px rgba(0, 128, 0, 0.4);
+}
+
+.power-button::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.2));
+    box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.power-button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+}
+
+.power-button:hover {
+    transform: scale(1.1);
+}
+
+.power-button:active {
+    transform: scale(0.95);
+}
+
+@keyframes glow {
+    0% {
+        box-shadow: 0 0 5px rgba(0, 255, 0, 0.7), 0 0 10px rgba(0, 255, 0, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.9), 0 0 30px rgba(0, 255, 0, 0.7);
+    }
+}
+.keys {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.key {
+    position: relative;
+    width: 75px;
+    height: 75px;
+    font-size: 24px;
+    background: #3a3a3a;
+    background-image: linear-gradient(135deg, rgba(58, 58, 58, 0.8), rgba(0, 0, 0, 0.8));
+    background-size: 100% 100%;
+    color: #fff;
+    border: 2px solid #000;
+    border-radius: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease-in-out;
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.3);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.key:before {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    z-index: -1;
+}
+
+.key:hover, .key:active {
+    transform: translateY(2px);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
+    border: 2px solid #444;
+}
+
+.operator {
+    background: #ff9800;
+    background-image: linear-gradient(135deg, rgba(255, 152, 0, 0.8), rgba(255, 107, 0, 0.8));
+}
+
+.function {
+    background: #ff5c5c;
+    background-image: linear-gradient(135deg, rgba(255, 92, 92, 0.8), rgba(255, 64, 64, 0.8));
+}
+
+.key:hover {
+    background: #4b4b4b;
+    background-image: linear-gradient(135deg, rgba(75, 75, 75, 0.8), rgba(0, 0, 0, 0.8));
+    transform: translateY(2px);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.5);
+    border: 2px solid #444;
+}
+
+.key:active {
+    transform: translateY(4px);
+    border: 2px solid #888;
+}
+
+.key.press {
+    transform: translateY(2px);
+    box-shadow: 0px 0px 1px rgba(0, 0, 0, 0.3);
+}
+
+.key span {
+    position: relative;
+    z-index: 2;
+}
+
+.key span:before {
+    content: attr(data-symbol);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #fff;
+    font-size: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    padding: 2px 4px;
+    pointer-events: none;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.7);
+}
     </style>
 </head>
 <body>
-    <canvas></canvas>
+    <div class="calculator-container">
+        <div class="calculator">
+            <button class="power-button" id="power-button"></button>
+            <div class="glass">
+                <div class="display">
+                    <input type="text" id="display" value="" readonly>
+                </div>
+                <div class="keys">
+                    <button class="key operator" onclick="handleButtonClick('C')">C</button>
+                    <button class="key" onclick="handleButtonClick('7')">7</button>
+                    <button class="key" onclick="handleButtonClick('8')">8</button>
+                    <button class="key" onclick="handleButtonClick('9')">9</button>
+                    <button class="key operator" onclick="setOperator('+')">+</button>
+                    <button class="key" onclick="handleButtonClick('4')">4</button>
+                    <button class="key" onclick="handleButtonClick('5')">5</button>
+                    <button class="key" onclick="handleButtonClick('6')">6</button>
+                    <button class="key operator" onclick="setOperator('-')">-</button>
+                    <button class="key" onclick="handleButtonClick('1')">1</button>
+                    <button class="key" onclick="handleButtonClick('2')">2</button>
+                    <button class="key" onclick="handleButtonClick('3')">3</button>
+                    <button class="key operator" onclick="setOperator('*')">*</button>
+                    <button class="key" onclick="handleButtonClick('0')">0</button>
+                    <button class="key" onclick="handleButtonClick('.')">.</button>
+                    <button class="key operator" onclick="setOperator('/')">/</button>
+                    <button class="key operator equals" onclick="handleEquals()">=</button>
+                    <button class="key function" onclick="handleButtonClick('√')">√</button>
+                    <button class="key function" onclick="calculateSquare()">x²</button>
+                    <button class="key function" onclick="calculateInverse()">1/x</button>
+
+                </div>
+
     <script>
-        var canvas, ctx;
-var paintColors = [
-    "#FF0000",   // Red
-    "#FF7F00",   // Orange
-    "#FFFF00",   // Yellow
-    "#00FF00",   // Green
-    "#0000FF",   // Blue
-    "#FF1493",   // DeepPink
-    "#00FFFF",   // Cyan
-    "#FFD700",   // Gold
-    "#ADFF2F",   // GreenYellow
-    "#1E90FF",   // DodgerBlue
-    "#F08080",   // LightCoral
-    "#90EE90",   // LightGreen
-    "#FFB6C1",   // LightPink
-    "#FFA07A",   // LightSalmon
-    "#7CFC00",   // LawnGreen
-    "#FFDAB9",   // PeachPuff
-    "#9370DB",   // MediumPurple
-    "#20B2AA",   // LightSeaGreen
-    "#00CED1",   // DarkTurquoise
-    "#FF4500",   // OrangeRed
-    "#FF8C00",   // DarkOrange
-    "#FA8072",   // Salmon
-    "#DAA520",   // Goldenrod
-    "#4169E1",   // RoyalBlue
-    "#3CB371",   // MediumSeaGreen
-    "#7B68EE",   // MediumSlateBlue
-    "#FFC0CB",   // Pink
-    "#7FFF00",   // Chartreuse
-    "#BA55D3",   // MediumOrchid
-    "#66CDAA",   // MediumAquamarine
-    "#9932CC",   // DarkOrchid
-    "#AFEEEE",   // PaleTurquoise
-    "#8B4513",   // SaddleBrown
-    "#2E8B57",   // SeaGreen
-    "#8B008B",   // DarkMagenta
-    "#228B22",   // ForestGreen
-    "#800000",   // Maroon
-    "#008B8B",   // DarkCyan
-    "#9400D3",   // DarkViolet
-    "#000080",   // Navy
-    "#556B2F",   // DarkOliveGreen
-    "#FFA500",   // Orange
-    "#A52A2A",   // Brown
-    "#4682B4",   // SteelBlue
-    "#DC143C"    // Crimson
-];
-var lake = [];
+        let currentDisplay = '0';
+        let operator = null;
+        let firstOperand = null;
+        let calculatorOn = false;
 
-        canvas = document.getElementsByTagName('canvas')[0];
-        ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const powerButton = document.getElementById('power-button');
+const display = document.getElementById('display');
+const keys = document.querySelectorAll('.key');
+const displayContainer = document.querySelector('.display');
+const equalsButton = document.querySelector('.key.operator');
+equalsButton.addEventListener('click', handleEquals);
+powerButton.addEventListener('click', toggleCalculator);
 
-        var viscosity = 0.98;
-        var alphaIncrement = 0.005;
 
-        var mouseDown = false;
-        var lastMouseX, lastMouseY;
+function toggleCalculator() {
+    calculatorOn = !calculatorOn;
+    if (calculatorOn) {
+        displayContainer.style.animation = 'fadeIn 1s ease';
+        display.style.opacity = 1;
+        display.style.border = '2px solid rgba(255, 255, 255, 0.2)';
+    } else {
+        displayContainer.style.animation = '';
+        display.style.opacity = 0;
+        display.style.border = '2px solid transparent';
+    }
+    display.classList.toggle('screen-off', !calculatorOn);
+    keys.forEach((key) => (key.disabled = !calculatorOn));
+    powerButton.classList.toggle('on', calculatorOn);
+}
 
-        function createInitialLake() {
-            for (let i = 0; i < canvas.width; i += 20) {
-                for (let j = 0; j < canvas.height; j += 20) {
-                    var randomColor = paintColors[Math.floor(Math.random() * paintColors.length)];
-                    var alpha = Math.random() * 0.5 + 0.5;
-                    var velocityX = (Math.random() - 0.5) * 1;
-                    var velocityY = (Math.random() - 0.5) * 1;
-                    lake.push({ x: i + Math.random() * 10, y: j + Math.random() * 10, brightness: alpha, radius: Math.random() * 10 + 5, color: randomColor, originalX: i + Math.random() * 10, originalY: j + Math.random() * 10, velocityX: velocityX, velocityY: velocityY });
-                }
-            }
+function updateDisplay() {
+            document.getElementById('display').value = currentDisplay;
         }
 
-        function updateCirclePositions() {
-            for (let i = 0; i < lake.length; i++) {
-                var circle = lake[i];
-
-                circle.velocityX *= viscosity;
-                circle.velocityY *= viscosity;
-
-                circle.x += circle.velocityX;
-                circle.y += circle.velocityY;
-
-                if (circle.x < 0 || circle.x > canvas.width) {
-                    circle.velocityX *= -1;
-                }
-                if (circle.y < 0 || circle.y > canvas.height) {
-                    circle.velocityY *= -1;
-                }
-            }
-        }
-
-        function handleMouseDown(e) {
-            mouseDown = true;
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
-        }
-
-        function handleMouseMove(e) {
-            if (mouseDown) {
-                var x = e.clientX;
-                var y = e.clientY;
-
-                for (let i = 0; i < lake.length; i++) {
-                    var circle = lake[i];
-                    var dx = x - circle.x;
-                    var dy = y - circle.y;
-                    var distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < 50) {
-                        circle.velocityX += dx * 0.01;
-                        circle.velocityY += dy * 0.01;
+        function handleButtonClick(value) {
+            if (calculatorOn) {
+                if (value === 'C') {
+                    clearDisplay();
+                } else if (value === '=') {
+                    if (operator !== null) {
+                        calculate();
+                        operator = null;
                     }
-                }
-
-                lastMouseX = x;
-                lastMouseY = y;
-            }
-        }
-
-        function handleMouseUp() {
-            mouseDown = false;
-        }
-
-        canvas.addEventListener('mousedown', handleMouseDown);
-        canvas.addEventListener('mousemove', handleMouseMove);
-        canvas.addEventListener('mouseup', handleMouseUp);
-
-        // New touch event handlers
-        var touchX, touchY;
-
-        function handleTouchStart(e) {
-            touchX = e.touches[0].clientX;
-            touchY = e.touches[0].clientY;
-        }
-
-        function handleTouchMove(e) {
-            e.preventDefault();
-            var x = e.touches[0].clientX;
-            var y = e.touches[0].clientY;
-
-            for (let i = 0; i < lake.length; i++) {
-                var circle = lake[i];
-                var dx = x - circle.x;
-                var dy = y - circle.y;
-                var distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < 50) {
-                    circle.velocityX += dx * 0.01;
-                    circle.velocityY += dy * 0.01;
-                }
-            }
-
-            touchX = x;
-            touchY = y;
-        }
-
-        function handleTouchEnd() {
-            touchX = null;
-            touchY = null;
-        }
-
-        canvas.addEventListener('touchstart', handleTouchStart);
-        canvas.addEventListener('touchmove', handleTouchMove);
-        canvas.addEventListener('touchend', handleTouchEnd);
-
-        function animate() {
-            requestAnimationFrame(animate);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = 'rgba(0, 0, 255, 1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            updateCirclePositions();
-
-            for (let i = 0; i < lake.length; i++) {
-                var circle = lake[i];
-
-                ctx.globalAlpha = circle.brightness;
-
-                var gradient = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, circle.radius);
-                gradient.addColorStop(0, circle.color);
-                gradient.addColorStop(1, 'transparent');
-                ctx.fillStyle = gradient;
-
-                ctx.beginPath();
-                ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.closePath();
-
-                if (circle.brightness < 1) {
-                    circle.brightness += alphaIncrement;
+                } else if (value === '√') {
+                    calculateSquareRoot();
+                } else if (value === 'x²') {
+                    calculateSquare();
+                } else if (value === '1/x') {
+                    calculateInverse();
+                } else {
+                    if (currentDisplay === '0' || currentDisplay === 'Error') {
+                        currentDisplay = value;
+                    } else {
+                        currentDisplay += value;
+                    }
+                    updateDisplay();
                 }
             }
         }
 
-        createInitialLake();
-        animate();
+        function appendToDisplay(value) {
+            if (currentDisplay === '0' || currentDisplay === 'Error') {
+                currentDisplay = value;
+            } else {
+                currentDisplay += value;
+            }
+            updateDisplay();
+        }
+
+        function setOperator(newOperator) {
+            if (operator === null) {
+                firstOperand = parseFloat(currentDisplay);
+                currentDisplay = '0';
+                operator = newOperator;
+            } else {
+                calculate();
+                operator = newOperator;
+            }
+        }
+
+        function calculate() {
+            if (operator !== null) {
+                const secondOperand = parseFloat(currentDisplay);
+                switch (operator) {
+                    case '+':
+                        currentDisplay = (firstOperand + secondOperand).toString();
+                        break;
+                    case '-':
+                        currentDisplay = (firstOperand - secondOperand).toString();
+                        break;
+                    case '*':
+                        currentDisplay = (firstOperand * secondOperand).toString();
+                        break;
+                    case '/':
+                        if (secondOperand === 0) {
+                            currentDisplay = 'Error';
+                        } else {
+                            currentDisplay = (firstOperand / secondOperand).toString();
+                        }
+                        break;
+                }
+                operator = null;
+                firstOperand = null;
+                updateDisplay();
+            }
+        }
+
+      function handleEquals() {
+    if (calculatorOn) {
+        if (operator !== null) {
+            const secondOperand = parseFloat(currentDisplay);
+            switch (operator) {
+                case '+':
+                    currentDisplay = (firstOperand + secondOperand).toString();
+                    break;
+                case '-':
+                    currentDisplay = (firstOperand - secondOperand).toString();
+                    break;
+                case '*':
+                    currentDisplay = (firstOperand * secondOperand).toString();
+                    break;
+                case '/':
+                    if (secondOperand === 0) {
+                        currentDisplay = 'Error';
+                    } else {
+                        currentDisplay = (firstOperand / secondOperand).toString();
+                    }
+                    break;
+            }
+            operator = null;
+            firstOperand = null;
+            updateDisplay();
+        }
+    }
+}
+
+        function calculateSquareRoot() {
+            const operand = parseFloat(currentDisplay);
+            if (operand >= 0) {
+                currentDisplay = Math.sqrt(operand).toString();
+            } else {
+                currentDisplay = 'Error';
+            }
+            updateDisplay();
+        }
+
+        function calculateSquare() {
+            const operand = parseFloat(currentDisplay);
+            currentDisplay = (operand * operand).toString();
+            updateDisplay();
+        }
+
+        function calculateInverse() {
+            const operand = parseFloat(currentDisplay);
+            if (operand !== 0) {
+                currentDisplay = (1 / operand).toString();
+            } else {
+                currentDisplay = 'Error';
+            }
+            updateDisplay();
+        }
+
+        function clearDisplay() {
+            currentDisplay = '0';
+            operator = null;
+            firstOperand = null;
+            updateDisplay();
+        }
+
     </script>
 </body>
 </html>
+
