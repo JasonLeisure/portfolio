@@ -1,242 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-    <title>Case Study of Project 1</title>
-    <meta name="description" content="Case study page of Project" />
-
-    <link rel="stylesheet" href="css/style.css" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <style>
-    body {
-      background-color: #0b0b0b;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-  </style>
+<head>
+  <meta charset="UTF-8">
+  <title>Minecraft-Inspired Landscape with Day-Night Cycle</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 </head>
 <body>
-  <div class="canvas-container">
-    <canvas id="defaultCanvas"></canvas>
-  </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
-  <button id="zoomInButton">Zoom In</button>
-  <button id="zoomOutButton">Zoom Out</button>
-  <button id="saveButton">Save Image</button>
   <script>
-    const numBoxes = 40;
-    const sideLength = 10;
-
-    const minHeight = 1;
-    const maxHeight = 150;
-
-    const noiseOffset = 100;
-    const noiseScale = 0.005;
-    const timeScale = 0.0002;
-    const rotateScale = 0.0001;
-
-    let seaLevel = 0.4;
-    const rockLevel = 0.25;
-    const sandLevel = 0.5;
-    const treeLevel = 0.75;
-
-    const rockColour = "#62718E";
-    const sandColour = "#D4A463";
-    const grassColour = "#90A944";
-    const forestColour = "#6D973E";
-    const seaColour = "#0077be";
-    const seaColourSolid = "#1098A6";
-    const trunkColour = "#886622";
-    const leafColour = "#468343";
-
-    let cam;
-
-    let heightScale = 1;
-    let heightDir = 0.05;
-
-    let dayNightCycle = 0;
-    let waterTime = 0;
-
+    let cols, rows;
+    let scl = 20;
+    let terrain = [];
+    let flying = 0;
+    let zoom = 0;
+    let lightAngle = 0;
+    let treePositions = [];
+    let clouds = [];
+    let sun;
+    let isDay = true;
+    let fish = [];
+    let stars = [];
     let raindrops = [];
+    let isJumping = false;
+    let jumpForce = -100;
+let waterLevel = 300;
 
     function setup() {
-      createCanvas(600, 600, WEBGL);
+      createCanvas(800, 800, WEBGL);
+      cols = floor(width / scl);
+      rows = floor(height / scl);
 
-      cam = createCamera();
-      const camHeight = -numBoxes * sideLength * 0.8;
-      const orbitRad = numBoxes * sideLength * 1.2;
-      cam.setPosition(0, camHeight, orbitRad);
-      cam.lookAt(0, 0, 0);
-
-      noStroke();
-      generateRaindrops();
-    }
-
-    function draw() {
-      background(200);
-      const t = millis();
-      dayNightCycle = (t % 60000) / 60000;
-      setDayNightCycle(dayNightCycle);
-      waterTime += 0.01;
-      rotateY(-t * rotateScale);
-      drawTerrain(t);
-      drawSun();
-
-      for (let i = 0; i < raindrops.length; i++) {
-        const raindrop = raindrops[i];
-        fill(150, 150, 255);
-        noStroke();
-        ellipse(raindrop.x, raindrop.y, 2, 15);
-        raindrop.y += 8;
-        if (raindrop.y > height / 2) {
-          raindrop.y = -height / 2;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (terrain[y] && terrain[y][x] >= 50) {
+            if (random(1) < 0.02) {
+              treePositions.push(createVector(x * scl, y * scl));
+            }
+          }
         }
       }
+
+      for (let i = 0; i < 10; i++) {
+        let x = random(width);
+        let y = random(100, 300);
+        let z = random(100, 300);
+        clouds.push({ x, y, z });
+      }
+
+      sun = createVector(400, -200, 100);
+
+      for (let i = 0; i < 5; i++) {
+        fish.push({
+          x: random(width),
+          y: random(200),
+          size: random(20, 40),
+          color: color(random(255), random(255), random(255))
+        });
+      }
     }
 
-
-    document.getElementById("saveButton").addEventListener("click", saveTerrainImage);
-
-    function saveTerrainImage() {
-      saveCanvas('terrain', 'jpg');
-    }
-
-    function setDayNightCycle(time) {
-      const skyColor = lerpColor(color(135, 206, 250), color(0, 0, 0), time);
-      background(skyColor);
-
-      const lightDirX = cos(PI * (time * 2 - 0.5));
-      const lightDirY = sin(PI * (time * 2 - 0.5));
-      const lightColor = color(lerp(50, 255, abs(0.5 - time) * 2));
-      directionalLight(lightColor, lightColor, lightColor, -lightDirX, -0.5, -lightDirY);
-      ambientLight(lightColor);
-    }
-
-    const cycleDurationMilliseconds = 60000;
-
-    function drawTerrain(t) {
-  for (let i = 0; i < numBoxes; i++) {
-    for (let j = 0; j < numBoxes; j++) {
-      const x = (i * sideLength) - (numBoxes * sideLength) / 2;
-      const z = (j * sideLength) - (numBoxes * sideLength) / 2;
-      drawBox(x, z, t);
+    function drawFish(x, y, size, color) {
+  if (isJumping) {
+    y += jumpForce;
+    jumpForce += 0.2;
+    if (y >= height) {
+      isJumping = false;
+      jumpForce = -5;
     }
   }
 
-  if (heightScale !== 0) {
-    push();
-    const waterHeight = getBoxHeight(seaLevel);
-    const waterSize = numBoxes * sideLength - 0.1;
-    fill(seaColour);
-    translate(-sideLength / 2, -waterHeight / 2, -sideLength / 2);
-    const waterAmplitude = 10;
-    box(waterSize, getBoxHeight(seaLevel) + waterAmplitude * sin(waterTime), waterSize);
-    pop();
-  }
+  fill(color);
+  noStroke();
+  let bodySize = size / 2;
+  let tailSize = size / 4;
+  let eyeSize = size / 8;
+
+
+  rect(x - bodySize / 2, y - bodySize / 4, bodySize, bodySize / 2);
+
+
+  triangle(x - bodySize / 2, y, x - tailSize, y - tailSize / 2, x - tailSize, y + tailSize / 2);
+
+
+  fill(0);
+  ellipse(x - eyeSize, y, eyeSize, eyeSize);
 }
 
-    function drawBox(x, z, t) {
-      const noiseValue = getNoiseValue(x, z, t);
-      let h = getBoxHeight(noiseValue);
-      h = max(h, 0.01);
-      push();
-      translate(x, -h / 2, z);
-      fill(getColour(noiseValue));
-      box(sideLength, h, sideLength);
+function drawMoonlight() {
+  directionalLight(150, 150, 150, 0, 1, -1);
+}
 
-      if (noiseValue >= treeLevel && heightScale > 0) {
-        drawTree(h);
+function draw() {
+  let bgColor;
+  if (isDay) {
+    ambientLight(255, 255, 255);
+    directionalLight(200, 200, 200, 0, 1, -1);
+    bgColor = color(173, 216, 230);
+  } else {
+    ambientLight(200, 200, 200);
+    directionalLight(80, 80, 80, 0, 1, -1);
+    bgColor = color(0, 0, 51);
+  }
+  background(bgColor);
+
+  // Draw different fish shapes
+  for (let i = 0; i < fish.length; i++) {
+    let f = fish[i];
+    drawDifferentFish(f.x, f.y, f.size, f.color);
+
+    f.x -= 2;
+
+    if (f.x < -f.size) {
+      f.x = width + f.size;
+      f.y = random(200);
+      if (!isJumping && random(1) < 0.2) {
+        isJumping = true;
       }
-      pop();
+    }
+  }
+
+
+  for (let i = 0; i < fish.length; i++) {
+    let f = fish[i];
+    f.y += f.speed;
+
+    if (f.y > waterLevel) {
+      f.speed *= -1;
     }
 
-    function drawTree(h) {
-      const trunkLength = 20;
-      const leafLength = 20;
-      push();
-      translate(0, -h / 2, 0);
-      fill(trunkColour);
-      translate(0, -trunkLength / 2, 0);
-      box(trunkLength / 4, trunkLength, trunkLength / 4);
-      fill(leafColour);
-      translate(0, -trunkLength / 2 - leafLength / 2, 0);
-      box(leafLength * 3 / 4, leafLength, leafLength * 3 / 4);
-      translate(0, -leafLength * 3 / 4, 0);
-      box(leafLength / 4);
-      pop();
+    drawFish(f.x, f.y, f.size, f.color);
+
+    f.x -= 2;
+
+    if (f.x < -f.size) {
+      f.x = width + f.size;
+      f.y = random(200, waterLevel);
+      f.speed = random(1, 3);
     }
+  }
 
-    function zoomIn() {
-      cam.move(0, -10, 0);
-    }
-
-    function zoomOut() {
-      cam.move(0, 10, 0);
-    }
-
-    document.getElementById("zoomInButton").addEventListener("click", zoomIn);
-    document.getElementById("zoomOutButton").addEventListener("click", zoomOut);
-
-    function getNoiseValue(x, z, time) {
-      x = x * noiseScale + noiseOffset;
-      z = z * noiseScale + noiseOffset;
-      time = time * timeScale + noiseOffset;
-      return noise(x, z, time);
-    }
-
-    function getBoxHeight(noiseValue) {
-      return map(noiseValue, 0, 1, minHeight, maxHeight) * heightScale;
-    }
-
-    function drawSun() {
-      const sunX = width / 4;
-      const sunY = -height / 2;
-      fill(255, 223, 186);
-      push();
-      translate(sunX, sunY);
-      ellipse(0, 0, 100, 100);
-      pop();
-    }
-
-    function getColour(noiseValue) {
-      if (noiseValue < seaLevel && heightScale === 0) {
-        return seaColour;
+      if (!isDay) {
+        drawRaindrops();
       }
 
-      if (noiseValue < rockLevel) {
-        return rockColour;
-      } else if (noiseValue < sandLevel) {
-        return sandColour;
+      if (isDay) {
+        push();
+        translate(0, 0, zoom - 200);
+        drawRainbow();
+        pop();
+      }
+ if (!isDay) {
+    drawMoonlight();
+  }
+
+      let yoff = flying;
+
+      for (let y = 0; y < rows; y++) {
+        let xoff = 0;
+        terrain[y] = [];
+        for (let x = 0; x < cols; x++) {
+          let a = map(x, 0, cols, -PI, PI);
+          let b = map(y, 0, rows, -PI, PI);
+          let n = noise(xoff, yoff);
+          let m = map(n, 0, 1, -150, 150);
+          let r = map(sin(a) * sin(b), -1, 1, -100, 100);
+          terrain[y][x] = m + r;
+          xoff += 0.1;
+        }
+        yoff += 0.1;
+      }
+
+      translate(0, 0, zoom);
+      zoom -= 0.1;
+      translate(-width / 2, -height / 2, -200);
+      rotateX(PI / 3);
+
+      if (!isDay) {
+        for (let i = 0; i < stars.length; i++) {
+          let star = stars[i];
+          if (star.z > 0) {
+            push();
+            translate(star.x, star.y, star.z);
+            fill(255);
+            noStroke();
+            let starSize = random(0.5, 1.5);
+            sphere(starSize);
+            pop();
+          }
+        }
+      }
+
+      for (let i = 0; i < treePositions.length; i++) {
+  let treePos = treePositions[i];
+  let sway = sin(millis() / 1000 + i) * 5;
+  push();
+  translate(treePos.x, treePos.y, 0);
+  fill(139, 69, 19);
+  box(10, 10, 100 + sway);
+  translate(0, 0, 100 + sway);
+  fill(34, 139, 34);
+  box(30, 100 + sway, 30);
+  pop();
+}
+
+      for (let y = 0; y < rows - 1; y++) {
+        for (let x = 0; x < cols; x++) {
+          let h = terrain[y][x];
+          push();
+          translate(x * scl, y * scl, h / 2);
+
+          if (h < 0) {
+            fill(51, 102, 204);
+          } else if (h < 10) {
+            fill(120);
+          } else if (h < 15) {
+            fill(194, 178, 128);
+          } else if (h < 30) {
+            fill(139, 69, 19);
+          } else {
+            fill(34, 139, 34);
+          }
+
+          box(scl, scl, h);
+          pop();
+        }
+      }
+
+      for (let i = 0; i < clouds.length; i++) {
+        let cloud = clouds[i];
+        cloud.x += 0.1;
+        if (cloud.x > width) {
+          cloud.x = -100;
+        }
+        push();
+        translate(cloud.x, cloud.y, cloud.z);
+        fill(255, 255, 255, 150);
+        noStroke();
+        box(100, 40, 40);
+        pop();
+      }
+
+      if (isDay) {
+        push();
+        translate(sun.x, sun.y, sun.z);
+        fill(255, 255, 0);
+        box(50);
+        pop();
       } else {
-        const lerpVal = map(noiseValue, sandLevel, treeLevel, 0, 1);
-        return lerpColor(color(grassColour), color(forestColour), lerpVal);
+        push();
+        translate(sun.x, sun.y, sun.z);
+        fill(192, 192, 192);
+        box(50);
+        pop();
       }
+
+      for (let i = 0; i < fish.length; i++) {
+        let f = fish[i];
+        drawFish(f.x, f.y, f.size, f.color);
+
+        f.x -= 2;
+
+        if (f.x < -f.size) {
+          f.x = width + f.size;
+          f.y = random(200);
+        }
+      }
+
+      if (sin(lightAngle) >= 0) {
+        isDay = true;
+      } else {
+        isDay = false;
+      }
+
+      if (!isDay) {
+        if (random(1) < 0.2) {
+          let x = random(-width, width);
+          let y = random(-height, height);
+          let z = random(200);
+          stars.push({ x, y, z });
+        }
+      }
+      drawRaindrops();
+      flying -= 0.05;
+      lightAngle += 0.0025;
     }
 
-
-function generateRaindrops() {
-  raindrops = [];
-
-  for (let i = 0; i < 100; i++) {
-    const x = random(-width / 2, width / 2);
-    const y = random(-height / 2, height / 2);
-    raindrops.push(createVector(x, y));
+    function drawRainbow() {
+      noFill();
+      strokeWeight(15);
+      let rainbowColors = [color(255, 0, 0), color(255, 165, 0), color(255, 255, 0), color(0, 128, 0), color(0, 0, 255), color(75, 0, 130), color(148, 0, 211)];
+      let radius = 400;
+      for (let i = 0; i < rainbowColors.length; i++) {
+        stroke(rainbowColors[i]);
+        arc(0, -200, radius * 2, radius * 2, PI, 0);
+        radius += 15;
+      }
+    }
+    function drawRaindrops() {
+  if (!isDay) {
+    for (let i = 0; i < raindrops.length; i++) {
+      let raindrop = raindrops[i];
+      stroke(0, 0, 255);
+      let y1 = raindrop.y;
+      let y2 = raindrop.y + raindrop.length;
+      line(raindrop.x, y1, raindrop.x, y2);
+      raindrop.y += raindrop.speed;
+      if (raindrop.y > height) {
+        raindrop.y = random(-200, -100);
+        raindrop.x = random(width);
+      }
+    }
   }
 }
+function drawDifferentFish(x, y, size, color) {
+      fill(color);
+      noStroke();
+      let bodySize = size / 2;
+      let tailSize = size / 4;
+      let eyeSize = size / 8;
+      ellipse(x, y, size, bodySize);
+      triangle(x - bodySize / 2, y, x - tailSize, y - tailSize / 2, x - tailSize, y + tailSize / 2);
+
+      fill(0);
+      ellipse(x - eyeSize, y, eyeSize, eyeSize);
+    }
 
   </script>
 </body>
+</html>
